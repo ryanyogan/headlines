@@ -23,7 +23,6 @@ pub enum NewsApiError {
     AsyncRequestFailed(#[from] reqwest::Error),
 }
 
-
 #[derive(Deserialize, Debug)]
 pub struct NewsAPIResponse {
     pub articles: Vec<Article>,
@@ -41,6 +40,7 @@ impl NewsAPIResponse {
 pub struct Article {
     pub title: String,
     pub url: String,
+    pub description: Option<String>,
 }
 
 impl Article {
@@ -50,6 +50,10 @@ impl Article {
 
     pub fn url(&self) -> &str {
         &self.url
+    }
+
+    pub fn desc(&self) -> Option<&String> {
+        self.description.as_ref()
     }
 }
 
