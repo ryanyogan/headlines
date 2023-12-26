@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use eframe::egui::{
-    Button, Color32, CtxRef, FontDefinitions, FontFamily, Hyperlink, Label, Layout, Separator,
+    Button, Color32, CtxRef, FontDefinitions, FontFamily, Hyperlink, Key, Label, Layout, Separator,
     TextStyle, TopBottomPanel, Ui, Window,
 };
 use serde::{Deserialize, Serialize};
@@ -180,6 +180,23 @@ impl Headlines {
         Window::new("Configuration").show(ctx, |ui| {
             ui.label("Enter your API_KEY for newsapi.org");
             let text_input = ui.text_edit_singleline(&mut self.config.api_key);
+
+            if text_input.lost_focus() && ui.input().key_pressed(Key::Enter) {
+                if let Err(error) = confy::store(
+                    "headlines",
+                    None,
+                    HeadlinesConfig {
+                        dark_mode: self.config.dark_mode,
+                        api_key: self.config.api_key.to_string(),
+                    },
+                ) {
+                    tracing::error!("Failed saving app state: {}", error);
+                }
+                tracing::info!("API KEY SET");
+            };
+
+            ui.label("If you haven't registered for the API_KEY, head over to");
+            ui.hyperlink("https://newsapi.org");
         });
     }
 }

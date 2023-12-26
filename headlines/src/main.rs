@@ -25,6 +25,7 @@ impl App for Headlines {
         }
 
         self.render_config(ctx);
+
         self.render_top_panel(ctx, frame);
 
         CentralPanel::default().show(ctx, |ui| {
