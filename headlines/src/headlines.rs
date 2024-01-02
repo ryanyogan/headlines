@@ -1,4 +1,7 @@
-use std::borrow::Cow;
+use std::{
+    borrow::Cow,
+    sync::mpsc::{Receiver, SyncSender},
+};
 
 use eframe::egui::{
     Button, Color32, CtxRef, FontDefinitions, FontFamily, Hyperlink, Key, Label, Layout, Separator,
@@ -11,6 +14,10 @@ pub const WHITE: Color32 = Color32::from_rgb(255, 255, 255);
 pub const BLACK: Color32 = Color32::from_rgb(0, 0, 0);
 pub const CYAN: Color32 = Color32::from_rgb(0, 255, 255);
 pub const RED: Color32 = Color32::from_rgb(255, 0, 0);
+
+pub enum Msg {
+    ApiKeySet(String),
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct HeadlinesConfig {
@@ -31,6 +38,8 @@ pub struct Headlines {
     pub articles: Vec<NewsCardData>,
     pub config: HeadlinesConfig,
     pub api_key_initialized: bool,
+    pub news_rx: Option<Receiver<NewsCardData>>,
+    pub app_tx: Option<SyncSender<Msg>>,
 }
 
 impl Headlines {
@@ -41,6 +50,21 @@ impl Headlines {
             articles: vec![],
             api_key_initialized: !config.api_key.is_empty(),
             config,
+            news_rx: None,
+            app_tx: None,
+        }
+    }
+
+    pub fn preload_articles(&mut self) {
+        if let Some(rx) = &self.news_rx {
+            match rx.try_recv() {
+                Ok(news_data) => {
+                    self.articles.push(news_data);
+                }
+                Err(e) => {
+                    tracing::warn!("Error receiving msg: {}", e);
+                }
+            }
         }
     }
 
@@ -189,6 +213,9 @@ impl Headlines {
                     tracing::error!("Failed saving app state: {}", error);
                 }
                 self.api_key_initialized = true;
+                if let Some(tx) = &self.app_tx {
+                    tx.send(Msg::ApiKeySet(self.config.api_key.to_string()));
+                }
             };
 
             ui.label("If you haven't registered for the API_KEY, head over to");
